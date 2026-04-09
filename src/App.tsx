@@ -95,7 +95,12 @@ Object.keys(categoryTitles).forEach(key => {
 });
 
 const processFiles = (files: Record<string, unknown>) => {
-  for (const path in files) {
+  // Sort the file paths naturally so "photo-2" comes before "photo-10"
+  const sortedPaths = Object.keys(files).sort((a, b) => 
+    a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
+  );
+
+  for (const path of sortedPaths) {
     const parts = path.split('/');
     const folderName = parts[parts.length - 2].toLowerCase().replace(/[^a-z0-9]/g, '');
     
