@@ -48,7 +48,7 @@ const GridItem = ({ url }: { url?: string }) => (
     <img 
       src={url} 
       className="w-full h-auto block" 
-      loading="lazy"
+      /* loading="lazy" removed for instant rendering */
     />
   </motion.div>
 );
@@ -195,6 +195,16 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Silent Background Preloader
+  useEffect(() => {
+    Object.values(portfolioFiles).flat().forEach((url) => {
+      if (url && !url.match(/\.(mp4|webm)$/i)) {
+        const img = new Image();
+        img.src = url;
+      }
+    });
+  }, []);
+
   useEffect(() => {
     if (activeCategory) {
       document.body.style.overflowY = 'hidden';
@@ -226,7 +236,7 @@ export default function App() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               onClick={handleReturnToMain}
-              className="logo-font text-xl md:text-2xl tracking-[0.1em] uppercase text-white hover:text-gray-400 transition-colors duration-500 pointer-events-auto"
+              className="logo-font text-2xl md:text-3xl tracking-[0.1em] uppercase text-white hover:text-gray-400 transition-colors duration-500 pointer-events-auto"
             >
               AJL VISUAL
             </motion.button>
@@ -234,7 +244,7 @@ export default function App() {
             <div />
           )}
         </AnimatePresence>
-        <div className="space-x-6 text-xs tracking-[0.2em] uppercase font-light pointer-events-auto hidden md:block text-white">
+        <div className="space-x-6 text-sm tracking-[0.2em] uppercase font-light pointer-events-auto hidden md:block text-white">
           <a href="#categories" onClick={() => setActiveCategory(null)} className="hover:text-gray-400 transition-colors duration-500">Work</a>
           <a href="#about" onClick={() => setActiveCategory(null)} className="hover:text-gray-400 transition-colors duration-500">About</a>
           <a href="https://www.instagram.com/ajlvisual/" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition-colors duration-500">Contact</a>
@@ -274,7 +284,7 @@ export default function App() {
               ] 
             }}
             transition={{ duration: 2.5, times: [0, 0.05, 0.1, 0.15, 1], delay: 0.3, ease: "easeOut" }}
-            className="logo-font text-5xl md:text-8xl tracking-[0.05em] mb-4 text-white uppercase"
+            className="logo-font text-6xl md:text-8xl tracking-[0.05em] mb-4 text-white uppercase"
           >
             AJL VISUAL
           </motion.h1>
@@ -282,7 +292,7 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 0, 0, 1, 1] }}
             transition={{ duration: 2.5, times: [0, 0.05, 0.1, 0.15, 1], delay: 0.3, ease: "easeOut" }}
-            className="text-xs md:text-sm tracking-[0.4em] text-gray-500 uppercase font-light"
+            className="text-sm md:text-base tracking-[0.4em] text-gray-500 uppercase font-light"
           >
             high end media & visuals
           </motion.p>
@@ -295,7 +305,7 @@ export default function App() {
           transition={{ duration: 1, delay: 1.5 }}
           className="absolute bottom-16 flex flex-col items-center text-gray-500 hover:text-white transition-colors duration-500 group z-30"
         >
-          <span className="text-[10px] tracking-[0.3em] uppercase font-light mb-4 group-hover:tracking-[0.4em] transition-all duration-500">the portfolio</span>
+          <span className="text-xs tracking-[0.3em] uppercase font-light mb-4 group-hover:tracking-[0.4em] transition-all duration-500">the portfolio</span>
           <ArrowDown className="w-5 h-5" strokeWidth={1} />
         </motion.a>
       </section>
@@ -319,7 +329,7 @@ export default function App() {
               hidden: { opacity: 0, y: 20 },
               show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
             }}
-            className="text-xs md:text-sm font-medium tracking-[0.5em] text-white uppercase mb-8 mt-4"
+            className="text-sm md:text-base font-medium tracking-[0.5em] text-white uppercase mb-8 mt-4"
           >
             Kinetic
           </motion.h3>
@@ -334,7 +344,7 @@ export default function App() {
             >
               <h2 
                 onClick={() => setActiveCategory(key)} 
-                className="text-lg md:text-3xl lg:text-4xl font-extralight tracking-[0.4em] uppercase cursor-pointer text-zinc-500 hover:text-white transition-colors duration-500"
+                className="text-xl md:text-3xl lg:text-4xl font-extralight tracking-[0.4em] uppercase cursor-pointer text-zinc-500 hover:text-white transition-colors duration-500"
               >
                 {categoryTitles[key]}
               </h2>
@@ -354,7 +364,7 @@ export default function App() {
               hidden: { opacity: 0, y: 20 },
               show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
             }}
-            className="text-xs md:text-sm font-medium tracking-[0.5em] text-white uppercase mb-8"
+            className="text-sm md:text-base font-medium tracking-[0.5em] text-white uppercase mb-8"
           >
             Static
           </motion.h3>
@@ -369,7 +379,7 @@ export default function App() {
             >
               <h2 
                 onClick={() => setActiveCategory(key)} 
-                className="text-lg md:text-3xl lg:text-4xl font-extralight tracking-[0.4em] uppercase cursor-pointer text-zinc-500 hover:text-white transition-colors duration-500"
+                className="text-xl md:text-3xl lg:text-4xl font-extralight tracking-[0.4em] uppercase cursor-pointer text-zinc-500 hover:text-white transition-colors duration-500"
               >
                 {categoryTitles[key]}
               </h2>
@@ -392,7 +402,7 @@ export default function App() {
           >
             <h2 
               onClick={() => setActiveCategory('videowork')} 
-              className="text-lg md:text-3xl lg:text-4xl font-light tracking-[0.3em] uppercase cursor-pointer text-zinc-400 hover:text-white transition-colors duration-500 italic"
+              className="text-xl md:text-3xl lg:text-4xl font-light tracking-[0.3em] uppercase cursor-pointer text-zinc-400 hover:text-white transition-colors duration-500 italic"
             >
               {categoryTitles['videowork']}
             </h2>
@@ -409,10 +419,9 @@ export default function App() {
           className="w-24 md:w-32 aspect-square rounded-full overflow-hidden flex-shrink-0"
         >
           <img 
-            src="https://picsum.photos/seed/portrait/800/800" 
+            src="/assets/hero/hero-image.JPG" 
             alt="AJL VISUAL Portrait" 
             className="w-full h-full object-cover" 
-            referrerPolicy="no-referrer" 
           />
         </motion.div>
 
@@ -423,17 +432,17 @@ export default function App() {
           transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
           className="flex flex-col items-center md:items-start max-w-xl"
         >
-          <h2 className="text-lg md:text-xl font-light tracking-[0.2em] mb-3 uppercase text-white">
+          <h2 className="text-xl md:text-2xl font-light tracking-[0.2em] mb-3 uppercase text-white">
             AJ Lachman
           </h2>
-          <p className="text-[10px] md:text-xs uppercase tracking-[0.15em] text-zinc-400 font-light leading-loose mb-8 max-w-lg">
+          <p className="text-xs md:text-sm uppercase tracking-[0.15em] text-zinc-400 font-light leading-loose mb-8 max-w-lg">
             a professional visual creator with years of international experience, specializing in high-end media creation and execution. Currently in Los Angeles.
           </p>
           <a 
             href="https://www.instagram.com/ajlvisual/" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="border border-zinc-700 px-6 py-2 text-[10px] tracking-[0.2em] uppercase text-gray-300 hover:bg-white hover:text-black hover:border-white transition-all duration-500"
+            className="border border-zinc-700 px-6 py-2 text-xs tracking-[0.2em] uppercase text-gray-300 hover:bg-white hover:text-black hover:border-white transition-all duration-500"
           >
             Get in Touch
           </a>
@@ -458,7 +467,7 @@ export default function App() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.2, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
                 onClick={() => setActiveCategory(null)} 
-                className="flex items-center space-x-2 text-[10px] md:text-xs tracking-[0.2em] uppercase text-zinc-400 hover:text-white transition-colors duration-500 mt-2"
+                className="flex items-center space-x-2 text-xs md:text-sm tracking-[0.2em] uppercase text-zinc-400 hover:text-white transition-colors duration-500 mt-2"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span className="hidden md:inline">Return to Main Screen</span>
@@ -469,7 +478,7 @@ export default function App() {
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                  className="text-sm md:text-lg tracking-[0.4em] uppercase font-extralight text-white"
+                  className="text-base md:text-xl tracking-[0.4em] uppercase font-extralight text-white"
                 >
                   {categoryTitles[activeCategory]}
                 </motion.h1>
@@ -477,21 +486,21 @@ export default function App() {
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.3, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                  className="text-[8px] md:text-[10px] tracking-[0.2em] uppercase text-zinc-500 font-light mt-2 max-w-[200px] md:max-w-xs"
+                  className="text-[10px] md:text-xs tracking-[0.2em] uppercase text-zinc-500 font-light mt-2 max-w-[200px] md:max-w-xs"
                 >
                   {categoryDescriptions[activeCategory]}
                 </motion.p>
               </div>
             </div>
 
-<div className="w-full columns-1 md:columns-2 lg:columns-3 gap-0 space-y-0 [column-fill:_balance]">
+            <div className="w-full columns-1 md:columns-2 lg:columns-3 gap-0 space-y-0 [column-fill:_balance]">
               {categoryData[activeCategory]}
             </div>
 
             <div className="w-full flex justify-center py-20">
               <button 
                 onClick={() => setActiveCategory(null)} 
-                className="border border-zinc-700 px-8 py-4 text-[10px] tracking-[0.2em] uppercase text-gray-300 hover:bg-white hover:text-black hover:border-white transition-all duration-500 flex items-center space-x-3"
+                className="border border-zinc-700 px-8 py-4 text-xs tracking-[0.2em] uppercase text-gray-300 hover:bg-white hover:text-black hover:border-white transition-all duration-500 flex items-center space-x-3"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Return to Main Screen</span>
