@@ -16,7 +16,7 @@ const categoryTitles: Record<string, string> = {
   'portraits': 'PORTRAITS',
   'catalog': 'CATALOG',
   'weddings': 'WEDDINGS',
-  'familyevents': 'FAMILY EVENTS',
+  'familyevents': 'PRIVATE EVENTS', // <-- Changed this line
   'realestate': 'REAL ESTATE',
   'dining': 'DINING',
   'products': 'PRODUCTS',
@@ -31,7 +31,7 @@ const categoryDescriptions: Record<string, string> = {
   'portraits': 'intimate captures revealing character',
   'catalog': 'clean, consistent, and detailed product or fashion catalogs',
   'weddings': 'timeless documentation of significant days',
-  'familyevents': 'cherished gatherings preserved',
+  'familyevents': 'exclusive private gatherings and celebrations',
   'realestate': 'architectural elegance and spatial storytelling',
   'dining': 'culinary artistry and atmospheric experiences',
   'products': 'meticulous commercial and product photography',
@@ -124,7 +124,7 @@ const displayNames: Record<string, string> = {
   'portraits': 'Portrait',
   'catalog': 'Catalog',
   'weddings': 'Wedding',
-  'familyevents': 'Family Event',
+  'familyevents': 'Exclusive Private Gatherings and Celebrations', // <-- Changed this line
   'realestate': 'Real Estate',
   'dining': 'Dining',
   'products': 'Product',
