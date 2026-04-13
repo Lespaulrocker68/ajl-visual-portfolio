@@ -92,7 +92,7 @@ const VideoGridItem = ({
           e.stopPropagation();
           onToggleMute();
         }}
-        className="absolute bottom-4 right-4 md:bottom-6 md:right-6 z-40 p-2 md:p-3 bg-black/40 backdrop-blur-xl border border-white/10 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all duration-300 hover:bg-white hover:text-black"
+        className="absolute bottom-4 right-4 md:bottom-6 md:right-6 z-50 p-2 md:p-3 bg-black/60 backdrop-blur-xl border border-white/20 rounded-full opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all duration-300 text-white hover:bg-white hover:text-black shadow-lg"
       >
         {isUnmuted ? <Volume2 className="w-4 h-4 md:w-5 md:h-5" /> : <VolumeX className="w-4 h-4 md:w-5 md:h-5" />}
       </button>
