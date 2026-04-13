@@ -176,7 +176,7 @@ export default function App() {
 
   let gridCols = "columns-1 md:columns-2 lg:columns-3"; 
   if (activeCategory === 'videohorizontal') gridCols = "columns-1 lg:columns-2"; 
-  else if (activeCategory === 'videovertical') gridCols = "columns-2 md:columns-3 lg:columns-4"; 
+  else if (activeCategory === 'videovertical') gridCols = "columns-1 md:columns-3 lg:columns-4"; 
 
   // Render Category Media
   const renderMedia = () => {
@@ -307,7 +307,7 @@ export default function App() {
             >
               <h2 
                 onClick={() => setActiveCategory(key)} 
-                className="text-lg md:text-3xl lg:text-4xl font-extralight tracking-[0.4em] uppercase cursor-pointer text-zinc-500 hover:text-white transition-colors duration-500"
+                className="text-[4.5vw] sm:text-2xl md:text-3xl lg:text-4xl font-extralight tracking-[0.4em] uppercase cursor-pointer text-zinc-500 hover:text-white transition-colors duration-500 whitespace-nowrap"
               >
                 {categoryTitles[key]}
               </h2>
@@ -342,7 +342,7 @@ export default function App() {
             >
               <h2 
                 onClick={() => setActiveCategory(key)} 
-                className="text-lg md:text-3xl lg:text-4xl font-extralight tracking-[0.4em] uppercase cursor-pointer text-zinc-500 hover:text-white transition-colors duration-500"
+                className="text-[4.5vw] sm:text-2xl md:text-3xl lg:text-4xl font-extralight tracking-[0.4em] uppercase cursor-pointer text-zinc-500 hover:text-white transition-colors duration-500 whitespace-nowrap"
               >
                 {categoryTitles[key]}
               </h2>
@@ -475,16 +475,18 @@ export default function App() {
                   <div className="w-full max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12 py-12">
                     <motion.div whileHover={{ scale: 1.02 }} onClick={() => setActiveCategory('videohorizontal')} className="relative w-full md:w-1/2 max-w-md aspect-square group cursor-pointer overflow-hidden bg-zinc-900 border border-white/10 flex items-center justify-center">
                       <img 
-                        src="/assets/hero/hero-image.JPG" 
-                        className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-all duration-700" 
+                        src="https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=800&auto=format&fit=crop" 
+                        className="absolute inset-0 w-full h-full object-cover opacity-40 blur-sm group-hover:opacity-60 transition-all duration-700" 
+                        referrerPolicy="no-referrer"
                         onError={(e) => { e.currentTarget.src = "https://picsum.photos/seed/horizontal/800/800"; }}
                       />
                       <h2 className="relative z-10 text-xl md:text-3xl font-extralight tracking-[0.4em] uppercase">Horizontal</h2>
                     </motion.div>
                     <motion.div whileHover={{ scale: 1.02 }} onClick={() => setActiveCategory('videovertical')} className="relative w-full md:w-1/2 max-w-md aspect-square group cursor-pointer overflow-hidden bg-zinc-900 border border-white/10 flex items-center justify-center">
                       <img 
-                        src="/assets/hero/hero-image.JPG" 
-                        className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-all duration-700" 
+                        src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=800&auto=format&fit=crop" 
+                        className="absolute inset-0 w-full h-full object-cover opacity-40 blur-sm group-hover:opacity-60 transition-all duration-700" 
+                        referrerPolicy="no-referrer"
                         onError={(e) => { e.currentTarget.src = "https://picsum.photos/seed/vertical/800/800"; }}
                       />
                       <h2 className="relative z-10 text-xl md:text-3xl font-extralight tracking-[0.4em] uppercase">Vertical</h2>
