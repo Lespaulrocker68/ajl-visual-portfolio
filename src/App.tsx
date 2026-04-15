@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -43,32 +44,54 @@ const categoryDescriptions: Record<string, string> = {
 };
 
 // 2. Specialized Components
-const GridItem = ({ url }: { url: string }) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-    className="relative w-full mb-0 overflow-hidden break-inside-avoid"
-  >
-    <img 
-      src={url} 
-      className="w-full h-auto block select-none pointer-events-none" 
-      draggable={false}
-      onContextMenu={(e) => e.preventDefault()}
-    />
-  </motion.div>
-);
+const GridItem: React.FC<{ url: string }> = ({ url }) => {
+  const isSrcSet = url.includes(' ');
+  const fallbackSrc = isSrcSet ? url.split(' ')[0] : url;
 
-const VideoGridItem = ({ 
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      className="relative w-full mb-0 overflow-hidden break-inside-avoid"
+    >
+      <img 
+        src={fallbackSrc}
+        srcSet={isSrcSet ? url : undefined}
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        loading="lazy"
+        decoding="async"
+        className="w-full h-auto block select-none pointer-events-none" 
+        draggable={false}
+        onContextMenu={(e) => e.preventDefault()}
+      />
+    </motion.div>
+  );
+};
+
+const VideoGridItem: React.FC<{ 
+  url: string; 
+  isUnmuted: boolean; 
+  onToggleMute: () => void;
+}> = ({ 
   url, 
   isUnmuted, 
   onToggleMute 
-}: { 
-  url: string; 
-  isUnmuted: boolean; 
-  onToggleMute: () => void 
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoSrc, setVideoSrc] = useState(globalVideoCache[url] || url);
+
+  useEffect(() => {
+    if (!globalVideoCache[url]) {
+      const interval = setInterval(() => {
+        if (globalVideoCache[url]) {
+          setVideoSrc(globalVideoCache[url]);
+          clearInterval(interval);
+        }
+      }, 200);
+      return () => clearInterval(interval);
+    }
+  }, [url]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -85,7 +108,7 @@ const VideoGridItem = ({
     >
       <video 
         ref={videoRef}
-        src={url} 
+        src={videoSrc} 
         autoPlay 
         loop 
         muted={!isUnmuted} 
@@ -111,11 +134,11 @@ const VideoGridItem = ({
 };
 
 // 3. Dynamic Ingestion Logic
-const imageFiles = import.meta.glob('/src/assets/portfolio/*/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}', { eager: true, query: '?url', import: 'default' });
+const imageFiles = import.meta.glob('/src/assets/portfolio/*/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}', { eager: true, query: '?w=400;800;1200&format=webp&as=srcset', import: 'default' });
 const videoFiles = import.meta.glob('/src/assets/portfolio/*/*.{mp4,webm,MP4,WEBM}', { eager: true, query: '?url', import: 'default' });
 
 // Carousel Files
-const carouselFilesRaw = import.meta.glob('/public/Carousel/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}', { eager: true, query: '?url', import: 'default' });
+const carouselFilesRaw = import.meta.glob('/public/Carousel/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}', { eager: true, query: '?w=800;1600;2400&format=webp&as=srcset', import: 'default' });
 const carouselImages = Object.values(carouselFilesRaw) as string[];
 const displayCarouselImages = carouselImages.length > 0 ? carouselImages : [
   "https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=1200&auto=format&fit=crop",
@@ -138,6 +161,8 @@ const processFiles = (files: Record<string, unknown>) => {
 
 processFiles(imageFiles);
 processFiles(videoFiles);
+
+const globalVideoCache: Record<string, string> = {};
 
 export default function App() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -174,27 +199,40 @@ export default function App() {
   };
 
   useEffect(() => {
-    Object.values(portfolioFiles).flat().forEach((url) => {
-      if (url) {
-        if (url.match(/\.(mp4|webm)$/i)) {
-          // Extremely aggressive preloading: force browser to fetch video into cache
-          const link = document.createElement('link');
-          link.rel = 'preload';
-          link.as = 'video';
-          link.href = url;
-          document.head.appendChild(link);
-          
-          // Also keep the video element preload as a fallback
-          const video = document.createElement('video');
-          video.preload = 'auto';
-          video.src = url;
-          video.load();
+    const preloadMedia = async () => {
+      const allUrls = Object.values(portfolioFiles).flat().filter(Boolean) as string[];
+      
+      // 1. Preload videos fully into memory as Blobs for instant playback
+      const videoUrls = allUrls.filter(url => url.match(/\.(mp4|webm)$/i));
+      videoUrls.forEach(async (url) => {
+        if (!globalVideoCache[url]) {
+          try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            globalVideoCache[url] = URL.createObjectURL(blob);
+          } catch (e) {
+            console.warn("Failed to preload video blob:", url);
+          }
+        }
+      });
+
+      // 2. Preload images
+      const imageUrls = allUrls.filter(url => !url.match(/\.(mp4|webm)$/i));
+      imageUrls.forEach(url => {
+        const isSrcSet = url.includes(' ');
+        const img = new Image(); 
+        if (isSrcSet) {
+          img.srcset = url;
+          img.sizes = "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw";
+          img.src = url.split(' ')[0];
         } else {
-          const img = new Image(); 
           img.src = url;
         }
-      }
-    });
+      });
+    };
+
+    preloadMedia();
+
     // Preload hero image
     const heroImg = new Image();
     heroImg.src = "/assets/hero/hero-image.JPG";
@@ -296,18 +334,27 @@ export default function App() {
             transition={{ ease: "linear", duration: displayCarouselImages.length * 10, repeat: Infinity }}
             className="flex h-full"
           >
-            {[...displayCarouselImages, ...displayCarouselImages].map((url, i) => (
-              <div key={i} className="w-screen h-screen flex-shrink-0 relative">
-                <img 
-                  src={url}
-                  className="absolute top-0 left-[-15vw] w-[130vw] max-w-none h-full object-cover opacity-40 mix-blend-screen"
-                  style={{ WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 23%, black 77%, transparent 100%)', maskImage: 'linear-gradient(to right, transparent 0%, black 23%, black 77%, transparent 100%)' }}
-                  alt=""
-                  draggable={false}
-                  onContextMenu={(e) => e.preventDefault()}
-                />
-              </div>
-            ))}
+            {[...displayCarouselImages, ...displayCarouselImages].map((url, i) => {
+              const isSrcSet = url.includes(' ');
+              const fallbackSrc = isSrcSet ? url.split(' ')[0] : url;
+              
+              return (
+                <div key={i} className="w-screen h-screen flex-shrink-0 relative">
+                  <img 
+                    src={fallbackSrc}
+                    srcSet={isSrcSet ? url : undefined}
+                    sizes="100vw"
+                    loading={i < 2 ? "eager" : "lazy"}
+                    decoding="async"
+                    className="absolute top-0 left-[-15vw] w-[130vw] max-w-none h-full object-cover opacity-40 mix-blend-screen"
+                    style={{ WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 23%, black 77%, transparent 100%)', maskImage: 'linear-gradient(to right, transparent 0%, black 23%, black 77%, transparent 100%)' }}
+                    alt=""
+                    draggable={false}
+                    onContextMenu={(e) => e.preventDefault()}
+                  />
+                </div>
+              );
+            })}
           </motion.div>
         </motion.div>
 
@@ -602,6 +649,21 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Hidden Video Pre-renderer to force hardware decoding before viewing */}
+      <div className="fixed top-0 left-0 w-[1px] h-[1px] opacity-0 pointer-events-none overflow-hidden z-[-1]">
+        {Object.values(portfolioFiles).flat().filter(url => url && url.match(/\.(mp4|webm)$/i)).map((url, i) => (
+          <video 
+            key={`preload-${i}`}
+            src={globalVideoCache[url] || url} 
+            autoPlay 
+            muted 
+            loop 
+            playsInline 
+            preload="auto"
+          />
+        ))}
+      </div>
     </motion.div>
   );
 }
