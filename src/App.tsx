@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, ReactNode, TouchEvent, useRef } from 'react';
 import { ArrowDown, ArrowLeft, ArrowUp, Volume2, VolumeX } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 
 // 1. Dictionaries & Metadata
 const categoryTitles: Record<string, string> = {
@@ -50,7 +50,12 @@ const GridItem = ({ url }: { url: string }) => (
     transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
     className="relative w-full mb-0 overflow-hidden break-inside-avoid"
   >
-    <img src={url} className="w-full h-auto block" />
+    <img 
+      src={url} 
+      className="w-full h-auto block select-none pointer-events-none" 
+      draggable={false}
+      onContextMenu={(e) => e.preventDefault()}
+    />
   </motion.div>
 );
 
@@ -85,7 +90,9 @@ const VideoGridItem = ({
         loop 
         muted={!isUnmuted} 
         playsInline 
-        className="w-full h-auto block" 
+        className="w-full h-auto block select-none pointer-events-none" 
+        draggable={false}
+        onContextMenu={(e) => e.preventDefault()}
       />
       <button 
         onClick={(e) => {
@@ -103,6 +110,15 @@ const VideoGridItem = ({
 // 3. Dynamic Ingestion Logic
 const imageFiles = import.meta.glob('/src/assets/portfolio/*/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}', { eager: true, query: '?url', import: 'default' });
 const videoFiles = import.meta.glob('/src/assets/portfolio/*/*.{mp4,webm,MP4,WEBM}', { eager: true, query: '?url', import: 'default' });
+
+// Carousel Files
+const carouselFilesRaw = import.meta.glob('/public/Carousel/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}', { eager: true, query: '?url', import: 'default' });
+const carouselImages = Object.values(carouselFilesRaw) as string[];
+const displayCarouselImages = carouselImages.length > 0 ? carouselImages : [
+  "https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1200&auto=format&fit=crop",
+  "https://images.unsplash.com/photo-1604228322306-33d1d1528061?q=80&w=1200&auto=format&fit=crop"
+];
 
 const portfolioFiles: Record<string, string[]> = {};
 Object.keys(categoryTitles).forEach(key => { portfolioFiles[key] = []; });
@@ -125,6 +141,9 @@ export default function App() {
   const [unmutedVideoUrl, setUnmutedVideoUrl] = useState<string | null>(null);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const { scrollY } = useScroll();
+  const heroOpacity = useTransform(scrollY, [0, 600], [1, 0]);
 
   // Auto-silence when changing categories
   useEffect(() => {
@@ -173,6 +192,25 @@ export default function App() {
   useEffect(() => {
     document.body.style.overflowY = activeCategory ? 'hidden' : 'auto';
   }, [activeCategory]);
+
+  // Global protection against downloading and saving
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => e.preventDefault();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent Ctrl+S, Cmd+S, Ctrl+P, Cmd+P
+      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'p')) {
+        e.preventDefault();
+      }
+    };
+    
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('keydown', handleKeyDown);
+    
+    return () => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   let gridCols = "columns-1 md:columns-2 lg:columns-3"; 
   if (activeCategory === 'videohorizontal') gridCols = "columns-1 lg:columns-2"; 
@@ -235,8 +273,33 @@ export default function App() {
         </div>
       </motion.nav>
 
-      <section id="hero" className="relative w-full h-screen flex flex-col items-center justify-center overflow-hidden z-10">
+      <section id="hero" className="relative w-full h-screen flex flex-col items-center justify-center overflow-hidden z-10 bg-black">
         
+        {/* Background Carousel */}
+        <motion.div 
+          style={{ opacity: heroOpacity }}
+          className="absolute inset-0 z-0 overflow-hidden pointer-events-none flex"
+        >
+          <motion.div
+            animate={{ x: ["0%", "-50%"] }}
+            transition={{ ease: "linear", duration: displayCarouselImages.length * 10, repeat: Infinity }}
+            className="flex h-full"
+          >
+            {[...displayCarouselImages, ...displayCarouselImages].map((url, i) => (
+              <div key={i} className="w-screen h-screen flex-shrink-0 relative">
+                <img 
+                  src={url}
+                  className="absolute top-0 left-[-15vw] w-[130vw] max-w-none h-full object-cover opacity-40 mix-blend-screen"
+                  style={{ WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 23%, black 77%, transparent 100%)', maskImage: 'linear-gradient(to right, transparent 0%, black 23%, black 77%, transparent 100%)' }}
+                  alt=""
+                  draggable={false}
+                  onContextMenu={(e) => e.preventDefault()}
+                />
+              </div>
+            ))}
+          </motion.div>
+        </motion.div>
+
         <motion.div 
           initial={{ y: 20 }}
           animate={{ y: 0 }}
@@ -255,7 +318,7 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 2, delay: 1, ease: "easeInOut" }}
-            className="text-xs md:text-sm tracking-[0.4em] text-gray-500 uppercase font-light"
+            className="text-sm md:text-base tracking-[0.4em] text-zinc-200 uppercase font-normal drop-shadow-lg"
           >
             high end media & visuals
           </motion.p>
@@ -266,10 +329,20 @@ export default function App() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 1.5 }}
-          className="absolute bottom-16 flex flex-col items-center text-gray-500 hover:text-white transition-colors duration-500 group z-30"
+          className="absolute bottom-16 flex flex-col items-center text-zinc-300 hover:text-white transition-colors duration-500 group z-30"
         >
-          <span className="text-[10px] tracking-[0.3em] uppercase font-light mb-4 group-hover:tracking-[0.4em] transition-all duration-500">the portfolio</span>
-          <ArrowDown className="w-5 h-5" strokeWidth={1} />
+          <span className="text-xs md:text-sm tracking-[0.3em] uppercase font-medium mb-4 group-hover:tracking-[0.4em] transition-all duration-500 drop-shadow-lg">the portfolio</span>
+          <div className="relative">
+            <ArrowDown className="w-6 h-6 md:w-8 md:h-8 text-white/20" strokeWidth={1} />
+            <motion.div
+              animate={{ clipPath: ['inset(0% 0% 100% 0%)', 'inset(0% 0% 0% 0%)', 'inset(100% 0% 0% 0%)'] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.2 }}
+              className="absolute inset-0"
+              style={{ filter: "drop-shadow(0px 0px 6px rgba(255,255,255,0.8))" }}
+            >
+              <ArrowDown className="w-6 h-6 md:w-8 md:h-8 text-white" strokeWidth={2} />
+            </motion.div>
+          </div>
         </motion.a>
       </section>
 
@@ -307,7 +380,7 @@ export default function App() {
             >
               <h2 
                 onClick={() => setActiveCategory(key)} 
-                className="text-[4.5vw] sm:text-2xl md:text-3xl lg:text-4xl font-extralight tracking-[0.4em] uppercase cursor-pointer text-zinc-500 hover:text-white transition-colors duration-500 whitespace-nowrap"
+                className="text-[4.5vw] sm:text-2xl md:text-3xl lg:text-4xl font-light tracking-[0.4em] uppercase cursor-pointer text-zinc-400 hover:text-white transition-colors duration-500 whitespace-nowrap"
               >
                 {categoryTitles[key]}
               </h2>
@@ -342,7 +415,7 @@ export default function App() {
             >
               <h2 
                 onClick={() => setActiveCategory(key)} 
-                className="text-[4.5vw] sm:text-2xl md:text-3xl lg:text-4xl font-extralight tracking-[0.4em] uppercase cursor-pointer text-zinc-500 hover:text-white transition-colors duration-500 whitespace-nowrap"
+                className="text-[4.5vw] sm:text-2xl md:text-3xl lg:text-4xl font-light tracking-[0.4em] uppercase cursor-pointer text-zinc-400 hover:text-white transition-colors duration-500 whitespace-nowrap"
               >
                 {categoryTitles[key]}
               </h2>
@@ -365,7 +438,7 @@ export default function App() {
           >
             <h2 
               onClick={() => setActiveCategory('videowork')} 
-              className="text-lg md:text-3xl lg:text-4xl font-light tracking-[0.3em] uppercase cursor-pointer text-zinc-400 hover:text-white transition-colors duration-500 italic"
+              className="text-[4.5vw] sm:text-2xl md:text-3xl lg:text-4xl font-light tracking-[0.3em] uppercase cursor-pointer text-white transition-all duration-500 italic [text-shadow:0_0_10px_#34d399,0_0_20px_#34d399,0_0_30px_#34d399] hover:[text-shadow:0_0_10px_#fff,0_0_20px_#34d399,0_0_40px_#34d399,0_0_60px_#34d399] whitespace-nowrap"
             >
               {categoryTitles['videowork']}
             </h2>
@@ -384,8 +457,10 @@ export default function App() {
           <img 
             src="/assets/hero/hero-image.JPG" 
             alt="AJL VISUAL Portrait" 
-            className="w-full h-full object-cover" 
+            className="w-full h-full object-cover select-none pointer-events-none" 
             referrerPolicy="no-referrer" 
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
             onError={(e) => {
               // Fallback if image doesn't exist
               e.currentTarget.src = "https://picsum.photos/seed/portrait/800/800";
@@ -451,7 +526,7 @@ export default function App() {
                     transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                     className="flex flex-col items-end"
                   >
-                    <h1 className="text-sm md:text-lg tracking-[0.4em] uppercase font-extralight text-white">
+                    <h1 className="text-sm md:text-lg tracking-[0.4em] uppercase font-light text-white">
                       {categoryTitles[activeCategory]}
                     </h1>
                     <p className="text-[8px] md:text-[10px] tracking-[0.2em] uppercase text-zinc-500 font-light mt-2 max-w-[200px] md:max-w-xs">
@@ -473,23 +548,27 @@ export default function App() {
               >
                 {activeCategory === 'videowork' ? (
                   <div className="w-full max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12 py-12">
-                    <motion.div whileHover={{ scale: 1.02 }} onClick={() => setActiveCategory('videohorizontal')} className="relative w-full md:w-1/2 max-w-md aspect-square group cursor-pointer overflow-hidden bg-zinc-900 border border-white/10 flex items-center justify-center">
-                      <img 
-                        src="https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=800&auto=format&fit=crop" 
-                        className="absolute inset-0 w-full h-full object-cover opacity-40 blur-sm group-hover:opacity-60 transition-all duration-700" 
-                        referrerPolicy="no-referrer"
-                        onError={(e) => { e.currentTarget.src = "https://picsum.photos/seed/horizontal/800/800"; }}
-                      />
-                      <h2 className="relative z-10 text-xl md:text-3xl font-extralight tracking-[0.4em] uppercase">Horizontal</h2>
-                    </motion.div>
                     <motion.div whileHover={{ scale: 1.02 }} onClick={() => setActiveCategory('videovertical')} className="relative w-full md:w-1/2 max-w-md aspect-square group cursor-pointer overflow-hidden bg-zinc-900 border border-white/10 flex items-center justify-center">
                       <img 
                         src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=800&auto=format&fit=crop" 
-                        className="absolute inset-0 w-full h-full object-cover opacity-40 blur-sm group-hover:opacity-60 transition-all duration-700" 
+                        className="absolute inset-0 w-full h-full object-cover opacity-40 blur-sm group-hover:opacity-60 transition-all duration-700 select-none pointer-events-none" 
                         referrerPolicy="no-referrer"
+                        draggable={false}
+                        onContextMenu={(e) => e.preventDefault()}
                         onError={(e) => { e.currentTarget.src = "https://picsum.photos/seed/vertical/800/800"; }}
                       />
                       <h2 className="relative z-10 text-xl md:text-3xl font-extralight tracking-[0.4em] uppercase">Vertical</h2>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.02 }} onClick={() => setActiveCategory('videohorizontal')} className="relative w-full md:w-1/2 max-w-md aspect-square group cursor-pointer overflow-hidden bg-zinc-900 border border-white/10 flex items-center justify-center">
+                      <img 
+                        src="https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=800&auto=format&fit=crop" 
+                        className="absolute inset-0 w-full h-full object-cover opacity-40 blur-sm group-hover:opacity-60 transition-all duration-700 select-none pointer-events-none" 
+                        referrerPolicy="no-referrer"
+                        draggable={false}
+                        onContextMenu={(e) => e.preventDefault()}
+                        onError={(e) => { e.currentTarget.src = "https://picsum.photos/seed/horizontal/800/800"; }}
+                      />
+                      <h2 className="relative z-10 text-xl md:text-3xl font-extralight tracking-[0.4em] uppercase">Horizontal</h2>
                     </motion.div>
                   </div>
                 ) : (
