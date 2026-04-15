@@ -81,7 +81,7 @@ const VideoGridItem = ({
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-      className="relative w-full mb-0 overflow-hidden break-inside-avoid group"
+      className="relative w-full mb-0 overflow-hidden break-inside-avoid group bg-zinc-900/50"
     >
       <video 
         ref={videoRef}
@@ -90,7 +90,10 @@ const VideoGridItem = ({
         loop 
         muted={!isUnmuted} 
         playsInline 
+        preload="auto"
+        disablePictureInPicture
         className="w-full h-auto block select-none pointer-events-none" 
+        style={{ transform: 'translateZ(0)', willChange: 'transform, opacity' }}
         draggable={false}
         onContextMenu={(e) => e.preventDefault()}
       />
@@ -174,6 +177,14 @@ export default function App() {
     Object.values(portfolioFiles).flat().forEach((url) => {
       if (url) {
         if (url.match(/\.(mp4|webm)$/i)) {
+          // Extremely aggressive preloading: force browser to fetch video into cache
+          const link = document.createElement('link');
+          link.rel = 'preload';
+          link.as = 'video';
+          link.href = url;
+          document.head.appendChild(link);
+          
+          // Also keep the video element preload as a fallback
           const video = document.createElement('video');
           video.preload = 'auto';
           video.src = url;
