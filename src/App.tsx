@@ -1,11 +1,10 @@
-/// <reference types="vite/client" />
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, ReactNode, TouchEvent, useRef } from 'react';
-import { ArrowDown, ArrowLeft, ArrowUp, Volume2, VolumeX } from 'lucide-react';
+import React, { useState, useEffect, TouchEvent, useRef } from 'react';
+import { ArrowDown, ArrowLeft, Volume2, VolumeX } from 'lucide-react'; // Removed unused ArrowUp
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 
 // 1. Dictionaries & Metadata
@@ -137,13 +136,11 @@ const VideoGridItem: React.FC<{
 const imageFiles = import.meta.glob('/src/assets/portfolio/*/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}', { eager: true, query: '?w=400;800;1200&format=webp&as=srcset', import: 'default' });
 const videoFiles = import.meta.glob('/src/assets/portfolio/*/*.{mp4,webm,MP4,WEBM}', { eager: true, query: '?url', import: 'default' });
 
-// Carousel Files
-const carouselFilesRaw = import.meta.glob('/public/Carousel/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}', { eager: true, query: '?w=800;1600;2400&format=webp&as=srcset', import: 'default' });
+// Carousel Files - FIXED PATH TO SRC/ASSETS
+const carouselFilesRaw = import.meta.glob('/src/assets/Carousel/*.{jpg,jpeg,png,webp,JPG,JPEG,PNG,WEBP}', { eager: true, query: '?w=800;1600;2400&format=webp&as=srcset', import: 'default' });
 const carouselImages = Object.values(carouselFilesRaw) as string[];
 const displayCarouselImages = carouselImages.length > 0 ? carouselImages : [
-  "https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=1200&auto=format&fit=crop",
-  "https://images.unsplash.com/photo-1604228322306-33d1d1528061?q=80&w=1200&auto=format&fit=crop"
+  "https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=1200&auto=format&fit=crop"
 ];
 
 const portfolioFiles: Record<string, string[]> = {};
@@ -173,7 +170,6 @@ export default function App() {
   const { scrollY } = useScroll();
   const heroOpacity = useTransform(scrollY, [0, 600], [1, 0]);
 
-  // Auto-silence when changing categories
   useEffect(() => {
     setUnmutedVideoUrl(null);
   }, [activeCategory]);
@@ -201,8 +197,6 @@ export default function App() {
   useEffect(() => {
     const preloadMedia = async () => {
       const allUrls = Object.values(portfolioFiles).flat().filter(Boolean) as string[];
-      
-      // 1. Preload videos fully into memory as Blobs for instant playback
       const videoUrls = allUrls.filter(url => url.match(/\.(mp4|webm)$/i));
       videoUrls.forEach(async (url) => {
         if (!globalVideoCache[url]) {
@@ -210,51 +204,24 @@ export default function App() {
             const response = await fetch(url);
             const blob = await response.blob();
             globalVideoCache[url] = URL.createObjectURL(blob);
-          } catch (e) {
-            console.warn("Failed to preload video blob:", url);
-          }
-        }
-      });
-
-      // 2. Preload images
-      const imageUrls = allUrls.filter(url => !url.match(/\.(mp4|webm)$/i));
-      imageUrls.forEach(url => {
-        const isSrcSet = url.includes(' ');
-        const img = new Image(); 
-        if (isSrcSet) {
-          img.srcset = url;
-          img.sizes = "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw";
-          img.src = url.split(' ')[0];
-        } else {
-          img.src = url;
+          } catch (e) { console.warn(e); }
         }
       });
     };
-
     preloadMedia();
-
-    // Preload hero image
-    const heroImg = new Image();
-    heroImg.src = "/assets/hero/hero-image.JPG";
   }, []);
 
   useEffect(() => {
     document.body.style.overflowY = activeCategory ? 'hidden' : 'auto';
   }, [activeCategory]);
 
-  // Global protection against downloading and saving
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => e.preventDefault();
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Prevent Ctrl+S, Cmd+S, Ctrl+P, Cmd+P
-      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'p')) {
-        e.preventDefault();
-      }
+      if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'p')) e.preventDefault();
     };
-    
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('keydown', handleKeyDown);
-    
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu);
       document.removeEventListener('keydown', handleKeyDown);
@@ -265,92 +232,49 @@ export default function App() {
   if (activeCategory === 'videohorizontal') gridCols = "columns-1 lg:columns-2"; 
   else if (activeCategory === 'videovertical') gridCols = "columns-1 md:columns-3 lg:columns-4"; 
 
-  // Render Category Media
   const renderMedia = () => {
     if (!activeCategory) return null;
     const files = portfolioFiles[activeCategory];
-    if (!files || files.length === 0) return <div className="text-zinc-800 uppercase tracking-widest py-20 w-full text-center">Bin empty - check media management</div>;
+    if (!files || files.length === 0) return <div className="text-zinc-800 uppercase tracking-widest py-20 w-full text-center">Bin empty</div>;
 
     return files.map((url) => {
       const isVideo = activeCategory.includes('video') || url.match(/\.(mp4|webm)$/i);
-      if (isVideo) {
-        return (
-          <VideoGridItem 
-            key={url} 
-            url={url} 
-            isUnmuted={unmutedVideoUrl === url} 
-            onToggleMute={() => setUnmutedVideoUrl(unmutedVideoUrl === url ? null : url)}
-          />
-        );
-      }
+      if (isVideo) return <VideoGridItem key={url} url={url} isUnmuted={unmutedVideoUrl === url} onToggleMute={() => setUnmutedVideoUrl(unmutedVideoUrl === url ? null : url)} />;
       return <GridItem key={url} url={url} />;
     });
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 2.5, ease: "easeInOut" }}
-      className="flex flex-col min-h-screen bg-black selection:bg-white/20"
-    >
-      <motion.nav 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 1 }}
-        className="fixed top-0 w-full z-[60] px-6 py-6 flex justify-between items-center pointer-events-none mix-blend-difference"
-      >
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 2.5 }} className="flex flex-col min-h-screen bg-black">
+      <motion.nav className="fixed top-0 w-full z-[60] px-6 py-6 flex justify-between items-center pointer-events-none mix-blend-difference">
         <AnimatePresence>
-          {activeCategory ? (
-            <motion.button 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              onClick={handleReturnToMain}
-              className="logo-font text-xl md:text-2xl tracking-[0.1em] uppercase text-white hover:text-gray-400 transition-colors duration-500 pointer-events-auto"
-            >
+          {activeCategory && (
+            <motion.button initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} onClick={handleReturnToMain} className="logo-font text-xl md:text-2xl tracking-[0.1em] uppercase text-white pointer-events-auto">
               AJL VISUAL
             </motion.button>
-          ) : (
-            <div />
           )}
         </AnimatePresence>
-        <div className="space-x-6 text-xs tracking-[0.2em] uppercase font-light pointer-events-auto hidden md:block text-white">
-          <a href="#categories" onClick={() => setActiveCategory(null)} className="hover:text-gray-400 transition-colors duration-500">Work</a>
-          <a href="#about" onClick={() => setActiveCategory(null)} className="hover:text-gray-400 transition-colors duration-500">About</a>
-          <a href="https://www.instagram.com/ajlvisual/" target="_blank" rel="noopener noreferrer" className="hover:text-gray-400 transition-colors duration-500">Contact</a>
+        <div className="space-x-6 text-xs tracking-[0.2em] uppercase pointer-events-auto hidden md:block text-white">
+          <a href="#categories" onClick={() => setActiveCategory(null)}>Work</a>
+          <a href="#about" onClick={() => setActiveCategory(null)}>About</a>
+          <a href="https://www.instagram.com/ajlvisual/" target="_blank" rel="noopener noreferrer">Contact</a>
         </div>
       </motion.nav>
 
       <section id="hero" className="relative w-full h-screen flex flex-col items-center justify-center overflow-hidden z-10 bg-black">
-        
-        {/* Background Carousel */}
-        <motion.div 
-          style={{ opacity: heroOpacity }}
-          className="absolute inset-0 z-0 overflow-hidden pointer-events-none flex"
-        >
-          <motion.div
-            animate={{ x: ["0%", "-50%"] }}
-            transition={{ ease: "linear", duration: displayCarouselImages.length * 10, repeat: Infinity }}
-            className="flex h-full"
-          >
+        <motion.div style={{ opacity: heroOpacity }} className="absolute inset-0 z-0 overflow-hidden pointer-events-none flex">
+          <motion.div animate={{ x: ["0%", "-50%"] }} transition={{ ease: "linear", duration: displayCarouselImages.length * 10, repeat: Infinity }} className="flex h-full">
             {[...displayCarouselImages, ...displayCarouselImages].map((url, i) => {
               const isSrcSet = url.includes(' ');
               const fallbackSrc = isSrcSet ? url.split(' ')[0] : url;
-              
               return (
                 <div key={i} className="w-screen h-screen flex-shrink-0 relative">
                   <img 
-                    src={fallbackSrc}
-                    srcSet={isSrcSet ? url : undefined}
-                    sizes="100vw"
-                    loading={i < 2 ? "eager" : "lazy"}
-                    decoding="async"
-                    className="absolute top-0 left-[-15vw] w-[130vw] max-w-none h-full object-cover opacity-40 mix-blend-screen"
+                    src={fallbackSrc} 
+                    srcSet={isSrcSet ? url : undefined} 
+                    sizes="100vw" 
+                    className="absolute top-0 left-[-15vw] w-[130vw] max-w-none h-full object-cover opacity-40 mix-blend-screen" 
                     style={{ WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 23%, black 77%, transparent 100%)', maskImage: 'linear-gradient(to right, transparent 0%, black 23%, black 77%, transparent 100%)' }}
-                    alt=""
-                    draggable={false}
-                    onContextMenu={(e) => e.preventDefault()}
                   />
                 </div>
               );
@@ -358,313 +282,67 @@ export default function App() {
           </motion.div>
         </motion.div>
 
-        <motion.div 
-          initial={{ y: 20 }}
-          animate={{ y: 0 }}
-          transition={{ duration: 1.2, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="relative text-center z-30"
-        >
-          <motion.h1 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 2, delay: 0.5, ease: "easeInOut" }}
-            className="logo-font text-[14vw] sm:text-[10vw] md:text-9xl tracking-[0.05em] mb-4 text-white uppercase whitespace-nowrap"
-          >
-            AJL VISUAL
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 2, delay: 1, ease: "easeInOut" }}
-            className="text-sm md:text-base tracking-[0.4em] text-zinc-200 uppercase font-normal drop-shadow-lg"
-          >
-            high end media & visuals
-          </motion.p>
-        </motion.div>
+        <div className="relative text-center z-30">
+          <h1 className="logo-font text-[14vw] md:text-9xl tracking-[0.05em] mb-4 text-white uppercase">AJL VISUAL</h1>
+          <p className="text-sm md:text-base tracking-[0.4em] text-zinc-200 uppercase">high end media & visuals</p>
+        </div>
 
-        <motion.a 
-          href="#categories" 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 1.5 }}
-          className="absolute bottom-16 flex flex-col items-center text-zinc-300 hover:text-white transition-colors duration-500 group z-30"
-        >
-          <span className="text-xs md:text-sm tracking-[0.3em] uppercase font-medium mb-4 group-hover:tracking-[0.4em] transition-all duration-500 drop-shadow-lg">the portfolio</span>
-          <div className="relative">
-            <ArrowDown className="w-6 h-6 md:w-8 md:h-8 text-white/20" strokeWidth={1} />
-            <motion.div
-              animate={{ clipPath: ['inset(0% 0% 100% 0%)', 'inset(0% 0% 0% 0%)', 'inset(100% 0% 0% 0%)'] }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.2 }}
-              className="absolute inset-0"
-              style={{ filter: "drop-shadow(0px 0px 6px rgba(255,255,255,0.8))" }}
-            >
-              <ArrowDown className="w-6 h-6 md:w-8 md:h-8 text-white" strokeWidth={2} />
-            </motion.div>
-          </div>
+        <motion.a href="#categories" className="absolute bottom-16 flex flex-col items-center text-zinc-300 z-30">
+          <span className="text-xs tracking-[0.3em] uppercase mb-4">the portfolio</span>
+          <ArrowDown className="w-6 h-6 text-white" />
         </motion.a>
       </section>
 
-      <section id="categories" className="relative w-full min-h-screen flex flex-col items-center justify-center py-32 z-10">
-        <motion.div 
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={{
-            hidden: { opacity: 0 },
-            show: {
-              opacity: 1,
-              transition: { staggerChildren: 0.08 }
-            }
-          }}
-          className="flex flex-col items-center space-y-6 md:space-y-8 w-full px-4 text-center"
-        >
-          <motion.h3
-            variants={{
-              hidden: { opacity: 0, y: 20 },
-              show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
-            }}
-            className="text-xs md:text-sm font-medium tracking-[0.5em] text-white uppercase mb-8 mt-4"
-          >
-            Kinetic
-          </motion.h3>
-
+      <section id="categories" className="relative w-full min-h-screen py-32 z-10">
+        <div className="flex flex-col items-center space-y-8 w-full px-4 text-center">
+          <h3 className="text-xs tracking-[0.5em] text-white uppercase mb-8">Kinetic</h3>
           {['nightlife', 'concerts', 'redcarpet', 'studio', 'portraits', 'catalog', 'weddings', 'familyevents'].map((key) => (
-            <motion.div
-              key={key}
-              variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
-              }}
-            >
-              <h2 
-                onClick={() => setActiveCategory(key)} 
-                className="text-[4.5vw] sm:text-2xl md:text-3xl lg:text-4xl font-light tracking-[0.4em] uppercase cursor-pointer text-zinc-400 hover:text-white transition-colors duration-500 whitespace-nowrap"
-              >
-                {categoryTitles[key]}
-              </h2>
-            </motion.div>
+            <h2 key={key} onClick={() => setActiveCategory(key)} className="text-2xl md:text-4xl font-light tracking-[0.4em] uppercase cursor-pointer text-zinc-400 hover:text-white transition-colors">{categoryTitles[key]}</h2>
           ))}
-
-          <motion.div
-            variants={{
-              hidden: { opacity: 0, scaleX: 0 },
-              show: { opacity: 1, scaleX: 1, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
-            }}
-            className="w-full h-[1px] bg-white/10 my-12"
-          />
-
-          <motion.h3
-            variants={{
-              hidden: { opacity: 0, y: 20 },
-              show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
-            }}
-            className="text-xs md:text-sm font-medium tracking-[0.5em] text-white uppercase mb-8"
-          >
-            Static
-          </motion.h3>
-
+          <div className="w-full h-[1px] bg-white/10 my-12" />
+          <h3 className="text-xs tracking-[0.5em] text-white uppercase mb-8">Static</h3>
           {['realestate', 'dining', 'products'].map((key) => (
-            <motion.div
-              key={key}
-              variants={{
-                hidden: { opacity: 0, y: 20 },
-                show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
-              }}
-            >
-              <h2 
-                onClick={() => setActiveCategory(key)} 
-                className="text-[4.5vw] sm:text-2xl md:text-3xl lg:text-4xl font-light tracking-[0.4em] uppercase cursor-pointer text-zinc-400 hover:text-white transition-colors duration-500 whitespace-nowrap"
-              >
-                {categoryTitles[key]}
-              </h2>
-            </motion.div>
+            <h2 key={key} onClick={() => setActiveCategory(key)} className="text-2xl md:text-4xl font-light tracking-[0.4em] uppercase cursor-pointer text-zinc-400 hover:text-white transition-colors">{categoryTitles[key]}</h2>
           ))}
-
-          <motion.div
-            variants={{
-              hidden: { opacity: 0, scaleX: 0 },
-              show: { opacity: 1, scaleX: 1, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
-            }}
-            className="w-full h-[1px] bg-white/10 my-12"
-          />
-
-          <motion.div
-            variants={{
-              hidden: { opacity: 0, y: 20 },
-              show: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] } }
-            }}
-          >
-            <h2 
-              onClick={() => setActiveCategory('videowork')} 
-              className="text-[4.5vw] sm:text-2xl md:text-3xl lg:text-4xl font-light tracking-[0.3em] uppercase cursor-pointer text-white transition-all duration-500 italic [text-shadow:0_0_10px_#34d399,0_0_20px_#34d399,0_0_30px_#34d399] hover:[text-shadow:0_0_10px_#fff,0_0_20px_#34d399,0_0_40px_#34d399,0_0_60px_#34d399] whitespace-nowrap"
-            >
-              {categoryTitles['videowork']}
-            </h2>
-          </motion.div>
-        </motion.div>
+          <div className="w-full h-[1px] bg-white/10 my-12" />
+          <h2 onClick={() => setActiveCategory('videowork')} className="text-2xl md:text-4xl font-light tracking-[0.3em] uppercase cursor-pointer text-white italic [text-shadow:0_0_10px_#34d399]">{categoryTitles['videowork']}</h2>
+        </div>
       </section>
 
-      <section id="about" className="relative w-full bg-zinc-900/30 py-16 md:py-20 flex flex-col md:flex-row items-center justify-center text-center md:text-left px-6 md:px-12 z-10 border-t border-white/5 gap-8 md:gap-12">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
-          className="w-24 md:w-32 aspect-square rounded-full overflow-hidden flex-shrink-0"
-        >
-          <img 
-            src="/assets/hero/hero-image.JPG" 
-            alt="AJL VISUAL Portrait" 
-            className="w-full h-full object-cover select-none pointer-events-none" 
-            referrerPolicy="no-referrer" 
-            draggable={false}
-            onContextMenu={(e) => e.preventDefault()}
-            onError={(e) => {
-              // Fallback if image doesn't exist
-              e.currentTarget.src = "https://picsum.photos/seed/portrait/800/800";
-            }}
-          />
-        </motion.div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-50px" }}
-          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
-          className="flex flex-col items-center md:items-start max-w-xl"
-        >
-          <h2 className="text-lg md:text-xl font-light tracking-[0.2em] mb-3 uppercase text-white">
-            AJ Lachman
-          </h2>
-          <p className="text-[10px] md:text-xs uppercase tracking-[0.15em] text-zinc-400 font-light leading-loose mb-8 max-w-lg">
-            a professional visual creator with years of international experience, specializing in high-end media creation and execution. Currently in Los Angeles.
-          </p>
-          <a 
-            href="https://www.instagram.com/ajlvisual/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="border border-zinc-700 px-6 py-2 text-[10px] tracking-[0.2em] uppercase text-gray-300 hover:bg-white hover:text-black hover:border-white transition-all duration-500"
-          >
-            Get in Touch
-          </a>
-        </motion.div>
+      <section id="about" className="relative w-full bg-zinc-900/30 py-20 flex flex-col md:flex-row items-center justify-center px-12 z-10 gap-12">
+        <div className="w-32 aspect-square rounded-full overflow-hidden flex-shrink-0">
+            <img src="/assets/hero/hero-image.JPG" className="w-full h-full object-cover" />
+        </div>
+        <div className="max-w-xl text-center md:text-left">
+          <h2 className="text-xl tracking-[0.2em] mb-3 uppercase text-white">AJ Lachman</h2>
+          <p className="text-xs uppercase tracking-[0.15em] text-zinc-400 leading-loose mb-8">Professional visual creator specializing in high-end media. Based in Los Angeles.</p>
+          <a href="https://www.instagram.com/ajlvisual/" target="_blank" rel="noopener noreferrer" className="border border-zinc-700 px-6 py-2 text-xs tracking-[0.2em] uppercase text-gray-300 hover:bg-white hover:text-black transition-all">Get in Touch</a>
+        </div>
       </section>
 
       <AnimatePresence>
         {activeCategory && (
-          <motion.div 
-            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            animate={{ opacity: 1, backdropFilter: "blur(24px)" }}
-            exit={{ opacity: 0, backdropFilter: "blur(0px)" }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed inset-0 z-50 bg-black/90 overflow-y-auto pt-24 pb-20 smooth-scroll"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-          >
-            <div className="max-w-7xl mx-auto px-6 mb-12 flex justify-between items-start">
-              <motion.button 
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                onClick={handleOverlayReturn} 
-                className="flex items-center space-x-2 text-[10px] md:text-xs tracking-[0.2em] uppercase text-zinc-400 hover:text-white transition-colors duration-500 mt-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden md:inline">Return</span>
-                <span className="md:hidden">Return</span>
-              </motion.button>
-              <div className="text-right flex flex-col items-end">
-                <AnimatePresence mode="wait">
-                  <motion.div
-                    key={activeCategory}
-                    initial={{ opacity: 0, x: 10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                    className="flex flex-col items-end"
-                  >
-                    <h1 className="text-sm md:text-lg tracking-[0.4em] uppercase font-light text-white">
-                      {categoryTitles[activeCategory]}
-                    </h1>
-                    <p className="text-[8px] md:text-[10px] tracking-[0.2em] uppercase text-zinc-500 font-light mt-2 max-w-[200px] md:max-w-xs">
-                      {categoryDescriptions[activeCategory]}
-                    </p>
-                  </motion.div>
-                </AnimatePresence>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/95 overflow-y-auto pt-24 pb-20">
+            <div className="max-w-7xl mx-auto px-6 mb-12 flex justify-between">
+              <button onClick={handleOverlayReturn} className="flex items-center space-x-2 text-xs tracking-[0.2em] uppercase text-zinc-400"><ArrowLeft className="w-4 h-4" /><span>Return</span></button>
+              <div className="text-right">
+                <h1 className="text-lg tracking-[0.4em] uppercase text-white">{categoryTitles[activeCategory]}</h1>
+                <p className="text-[10px] tracking-[0.2em] uppercase text-zinc-500 mt-2">{categoryDescriptions[activeCategory]}</p>
               </div>
             </div>
-
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeCategory}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full"
-              >
-                {activeCategory === 'videowork' ? (
-                  <div className="w-full max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12 py-12">
-                    <motion.div whileHover={{ scale: 1.02 }} onClick={() => setActiveCategory('videovertical')} className="relative w-full md:w-1/2 max-w-md aspect-square group cursor-pointer overflow-hidden bg-zinc-900 border border-white/10 flex items-center justify-center">
-                      <img 
-                        src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=800&auto=format&fit=crop" 
-                        className="absolute inset-0 w-full h-full object-cover opacity-40 blur-sm group-hover:opacity-60 transition-all duration-700 select-none pointer-events-none" 
-                        referrerPolicy="no-referrer"
-                        draggable={false}
-                        onContextMenu={(e) => e.preventDefault()}
-                        onError={(e) => { e.currentTarget.src = "https://picsum.photos/seed/vertical/800/800"; }}
-                      />
-                      <h2 className="relative z-10 text-xl md:text-3xl font-extralight tracking-[0.4em] uppercase">Vertical</h2>
-                    </motion.div>
-                    <motion.div whileHover={{ scale: 1.02 }} onClick={() => setActiveCategory('videohorizontal')} className="relative w-full md:w-1/2 max-w-md aspect-square group cursor-pointer overflow-hidden bg-zinc-900 border border-white/10 flex items-center justify-center">
-                      <img 
-                        src="https://images.unsplash.com/photo-1485846234645-a62644f84728?q=80&w=800&auto=format&fit=crop" 
-                        className="absolute inset-0 w-full h-full object-cover opacity-40 blur-sm group-hover:opacity-60 transition-all duration-700 select-none pointer-events-none" 
-                        referrerPolicy="no-referrer"
-                        draggable={false}
-                        onContextMenu={(e) => e.preventDefault()}
-                        onError={(e) => { e.currentTarget.src = "https://picsum.photos/seed/horizontal/800/800"; }}
-                      />
-                      <h2 className="relative z-10 text-xl md:text-3xl font-extralight tracking-[0.4em] uppercase">Horizontal</h2>
-                    </motion.div>
-                  </div>
-                ) : (
-                  <div className={`w-full ${gridCols} gap-0 space-y-0 [column-fill:_balance]`}>
-                    {renderMedia()}
-                  </div>
-                )}
-              </motion.div>
-            </AnimatePresence>
-
-            <div className="w-full flex justify-center py-20">
-              <button 
-                onClick={handleOverlayReturn} 
-                className="border border-zinc-700 px-8 py-4 text-[10px] tracking-[0.2em] uppercase text-gray-300 hover:bg-white hover:text-black hover:border-white transition-all duration-500 flex items-center space-x-3"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Return</span>
-              </button>
+            <div className="w-full">
+              {activeCategory === 'videowork' ? (
+                <div className="flex flex-col md:flex-row justify-center gap-12 py-12">
+                    <div onClick={() => setActiveCategory('videovertical')} className="w-64 aspect-square bg-zinc-900 flex items-center justify-center cursor-pointer border border-white/10 uppercase tracking-[0.4em]">Vertical</div>
+                    <div onClick={() => setActiveCategory('videohorizontal')} className="w-64 aspect-square bg-zinc-900 flex items-center justify-center cursor-pointer border border-white/10 uppercase tracking-[0.4em]">Horizontal</div>
+                </div>
+              ) : (
+                <div className={`w-full ${gridCols} gap-0`}>{renderMedia()}</div>
+              )}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Hidden Video Pre-renderer to force hardware decoding before viewing */}
-      <div className="fixed top-0 left-0 w-[1px] h-[1px] opacity-0 pointer-events-none overflow-hidden z-[-1]">
-        {Object.values(portfolioFiles).flat().filter(url => url && url.match(/\.(mp4|webm)$/i)).map((url, i) => (
-          <video 
-            key={`preload-${i}`}
-            src={globalVideoCache[url] || url} 
-            autoPlay 
-            muted 
-            loop 
-            playsInline 
-            preload="auto"
-          />
-        ))}
-      </div>
     </motion.div>
   );
 }
-
